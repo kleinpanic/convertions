@@ -1,0 +1,4 @@
+Hello there,
+This is a sample text file for testing the Text-to-Speech conversion script.
+We are converting this text into an audio file.
+Enjoy testing your script!
