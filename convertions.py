@@ -43,7 +43,13 @@ SCRIPT_MAP = {
     "texttospeech": "texttospeech.py",
     "videotoaudio": "videotoaudio.py",
     "pdftoexcel": "pdftoexcel.py",
-    "mergepdfs": "mergepdfs.py"
+    "mergepdfs": "mergepdfs.py",
+    "m4atomp3": "m4atomp3.py",
+    "mp3tom4a": "mp3tom4a.py",
+    "mp3towav": "mp3towav.py",
+    "wavtomp3": "wavtomp3.py",
+    "wavtotext":"wavtotext.py",
+    "mdtodocx":"mdtodocx.py"
 }
 
 # Display help for all commands
@@ -74,6 +80,12 @@ Available commands:
   pdftoexcel <input_pdf_path> <output_excel_path>
   docxtomd <input_docx_path> <output_md_path>
   mergepdfs <output_pdf_path> <input_pdf1> <input_pdf2> ...
+  m4atomp3 <input_m4a_path> <output_mp3_path>
+  mp3tom4a <input_mp3_path> <output_m4a_path>
+  mp3towav <input_mp3_path> <output_wav_path>
+  wavtomp3 <input_wav_path> <output_mp3_path>
+  wavtotext <input_wav_path> <output_text_path>
+  mdtodocx <input_md_path> <output_docx_path>
 """
     print(help_text)
 
@@ -93,19 +105,35 @@ def get_script_path(script_name):
 
 def validate_paths(command, args):
     """Validate paths for commands with specific argument requirements."""
+    # Commands that require multiple input files and one output file
     if command in ["jpgstopdf", "csvmerge", "mergepdfs"]:
+        if len(args) < 2:
+            raise ValueError(f"Command '{command}' requires at least one output file and one or more input files.")
+        
         output_path = expand_path(args[0])
         input_paths = [expand_path(path) for path in args[1:]]
-        if len(input_paths) < 2:
-            raise ValueError(f"Command '{command}' requires at least two input files.")
+        
+        if not os.path.isfile(output_path) and not os.access(os.path.dirname(output_path) or '.', os.W_OK):
+            raise ValueError(f"Output file '{output_path}' is not writable.")
+        
         if not all(os.path.isfile(path) for path in input_paths):
-            raise FileNotFoundError("One or more input paths do not exist.")
-    else:
-        if len(args) < 2:
-            raise ValueError(f"Command '{command}' requires an input and an output path.")
-        input_path, output_path = expand_path(args[0]), expand_path(args[1])
-        if not os.path.isfile(input_path):
-            raise FileNotFoundError(f"Input file '{input_path}' does not exist.")
+            missing_files = [path for path in input_paths if not os.path.isfile(path)]
+            raise FileNotFoundError(f"One or more input files do not exist: {', '.join(missing_files)}")
+        
+        return output_path
+    
+    # Commands that require exactly one input file and one output file
+    if len(args) < 2:
+        raise ValueError(f"Command '{command}' requires an input file and an output file.")
+    
+    input_path, output_path = expand_path(args[0]), expand_path(args[1])
+    
+    if not os.path.isfile(input_path):
+        raise FileNotFoundError(f"Input file '{input_path}' does not exist.")
+    
+    if not os.access(os.path.dirname(output_path) or '.', os.W_OK):
+        raise ValueError(f"Output directory for '{output_path}' is not writable.")
+    
     return output_path
 
 def run_command(command, args):
